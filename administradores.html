@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Administración · OPTOClock</title>
+<body style="font-family:system-ui;max-width:800px;margin:24px auto;padding:16px">
+  <h2>Acceso administradores</h2>
+  <div id="msg" style="padding:8px;border:1px solid #ddd;margin-bottom:8px"></div>
+
+  <form id="login" style="display:grid;gap:8px;max-width:360px">
+    <input id="l_email" type="email" placeholder="Email admin" required>
+    <input id="l_pass" type="password" placeholder="Contraseña" required>
+    <button>Entrar</button>
+  </form>
+
+  <div id="panel" style="display:none;margin-top:24px">
+    <h3>Crear trabajador</h3>
+    <form id="alta" style="display:grid;gap:8px;max-width:420px">
+      <input id="a_full" placeholder="Nombre completo" required>
+      <input id="a_email" type="email" placeholder="Email" required>
+      <input id="a_pass" type="text" placeholder="Contraseña inicial" required>
+      <select id="a_company"><option value="visionacademy">visionacademy</option><option value="eyecare">eyecare</option></select>
+      <input id="a_pos" placeholder="Puesto" required>
+      <button>Crear trabajador</button>
+    </form>
+  </div>
+
+<script>
+let ADMIN_EMAIL = null;
+const M=document.getElementById('msg');
+function show(s,ok=false){M.textContent=s;M.style.background=ok?'#ecfdf5':'#fef2f2'}
+
+document.getElementById('login').addEventListener('submit', async (e)=>{
+  e.preventDefault(); show('Comprobando…');
+  const email = document.getElementById('l_email').value.trim();
+  const password = document.getElementById('l_pass').value;
+  try{
+    const r=await fetch('/api/login_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+    const t=await r.text(); let j={}; try{ j=JSON.parse(t) }catch{ j={raw:t} }
+    if(!r.ok) throw new Error(j.error||t);
+    if(!j.user?.is_admin) throw new Error('No es administrador');
+    ADMIN_EMAIL = j.user.email;
+    show('Acceso concedido ✓', true);
+    document.getElementById('panel').style.display='block';
+  }catch(err){ show('Error: '+err.message); }
+});
+
+document.getElementById('alta').addEventListener('submit', async (e)=>{
+  e.preventDefault(); show('Creando trabajador…');
+  if(!ADMIN_EMAIL) return show('Primero inicia sesión como admin');
+  const body={
+    admin_email: ADMIN_EMAIL,
+    full_name: document.getElementById('a_full').value.trim(),
+    email:     document.getElementById('a_email').value.trim(),
+    password:  document.getElementById('a_pass').value,
+    company:   document.getElementById('a_company').value,
+    position:  document.getElementById('a_pos').value.trim()
+  };
+  try{
+    const r=await fetch('/api/register_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const t=await r.text(); let j={}; try{ j=JSON.parse(t) }catch{ j={raw:t} }
+    if(!r.ok) throw new Error(j.error||t);
+    show('Trabajador creado ✓', true);
+    e.target.reset();
+  }catch(err){ show('Error: '+err.message); }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Configurar primer admin</title>
+<body style="font-family:system-ui;max-width:640px;margin:24px auto;padding:16px">
+  <h2>Crear primer administrador</h2>
+  <div id="msg" style="margin:8px 0;padding:8px;border:1px solid #ddd"></div>
+  <form id="f" style="display:grid;gap:10px">
+    <input id="full_name" placeholder="Nombre completo" required>
+    <input id="email" type="email" placeholder="Email (ej. epiblue@gmail.com)" required>
+    <input id="password" type="password" placeholder="Contraseña (ej. Erucampo1.)" required>
+    <select id="company"><option value="visionacademy">visionacademy</option><option value="eyecare">eyecare</option></select>
+    <input id="position" value="Admin" required>
+    <button>Crear primer admin</button>
+  </form>
+<script>
+const m=document.getElementById('msg');
+const show=(t,ok)=>{m.textContent=t;m.style.background=ok?'#ecfdf5':'#fef2f2'};
+f.addEventListener('submit', async (e)=>{
+  e.preventDefault(); show('Creando…');
+  const body={full_name:f.full_name.value.trim(), email:f.email.value.trim(), password:f.password.value, company:f.company.value, position:f.position.value.trim()};
+  try{
+    const r=await fetch('/api/bootstrap_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const t=await r.text(); let j={}; try{ j=JSON.parse(t) }catch{ j={ raw:t } }
+    if(!r.ok) throw new Error(j.error||t);
+    show('Creado ✓ Ahora borra admin-setup.html del repo.', true);
+  }catch(err){ show('Error: '+err.message); }
+});
+</script>
+</body>
+</html>
