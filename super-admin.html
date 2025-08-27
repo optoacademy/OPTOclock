@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Super Admin · OPTOClock</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Super Admin</h2>
+    <div id="msg" class="message"></div>
+
+    <form id="login-form" class="form-grid">
+      <input id="email" type="email" placeholder="Email" required>
+      <input id="password" type="password" placeholder="Contraseña" required>
+      <button type="submit">Entrar</button>
+    </form>
+
+    <div id="super-admin-panel" class="panel" style="display:none;">
+      <h3 id="welcome-message"></h3>
+      <div class="card">
+        <h4>Crear nueva empresa</h4>
+        <form id="company-form" class="form-grid">
+          <input id="company_name" placeholder="Nombre de la empresa" required>
+          <button type="submit">Añadir empresa</button>
+        </form>
+      </div>
+      <div class="card">
+        <h4>Crear administrador de empresa</h4>
+        <form id="admin-form" class="form-grid">
+          <select id="company_select" required></select>
+          <input id="full_name" placeholder="Nombre completo del admin" required>
+          <input id="admin_email" type="email" placeholder="Email del admin" required>
+          <input id="admin_password" type="password" placeholder="Contraseña inicial" required>
+          <button type="submit">Crear admin</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const loginForm = document.getElementById('login-form');
+    const superAdminPanel = document.getElementById('super-admin-panel');
+    const welcomeMessage = document.getElementById('welcome-message');
+    const companyForm = document.getElementById('company-form');
+    const adminForm = document.getElementById('admin-form');
+    const companySelect = document.getElementById('company_select');
+    const msg = document.getElementById('msg');
+
+    let currentUser = null;
+    let companies = [];
+
+    function showMessage(message, isSuccess = false) {
+      msg.textContent = message;
+      msg.className = 'message ' + (isSuccess ? 'success' : 'error');
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      showMessage('Comprobando…');
+      const email = loginForm.email.value.trim();
+      const password = loginForm.password.value;
+
+      try {
+        const response = await fetch('/api/login_user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Error en el login');
+        }
+        if (!data.user.is_super_admin) {
+          throw new Error('No tienes permisos de Super Admin.');
+        }
+        currentUser = data.user;
+        companies = currentUser.companies || [];
+        updateCompanySelect();
+
+        showMessage('Acceso concedido ✓', true);
+        loginForm.style.display = 'none';
+        superAdminPanel.style.display = 'block';
+        welcomeMessage.textContent = `Hola, ${currentUser.full_name}`;
+      } catch (error) {
+        showMessage('Error: ' + error.message);
+      }
+    });
+
+    companyForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const companyName = companyForm.company_name.value.trim();
+      if (companyName && !companies.includes(companyName)) {
+        companies.push(companyName);
+        updateCompanySelect();
+        showMessage(`Empresa "${companyName}" añadida a la lista.`, true);
+        companyForm.reset();
+      } else {
+        showMessage('El nombre de la empresa no puede estar vacío o ya existe.', false);
+      }
+    });
+
+    function updateCompanySelect() {
+      companySelect.innerHTML = '';
+      companies.forEach(company => {
+        const option = document.createElement('option');
+        option.value = company;
+        option.textContent = company;
+        companySelect.appendChild(option);
+      });
+    }
+
+    adminForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      showMessage('Creando administrador…');
+
+      const body = {
+        full_name: adminForm.full_name.value.trim(),
+        email: adminForm.admin_email.value.trim(),
+        password: adminForm.admin_password.value,
+        company: adminForm.company_select.value,
+        position: 'Admin',
+        is_admin: true,
+        // We need to send the super admin's email for authorization
+        admin_email: currentUser.email
+      };
+
+      try {
+        const response = await fetch('/api/register_user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Error al crear el administrador');
+        }
+        showMessage('Administrador creado correctamente.', true);
+        adminForm.reset();
+      } catch (error) {
+        showMessage('Error: ' + error.message);
+      }
+    });
+  </script>
+</body>
+</html>

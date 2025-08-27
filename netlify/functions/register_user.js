@@ -19,17 +19,33 @@ export async function handler(event) {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { admin_email, full_name, email, password, company, position } = body;
+    const { admin_email, full_name, email, password, company, position, is_admin = false } = body;
     if (!admin_email || !full_name || !email || !password || !company || !position) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Faltan campos' }) };
     }
 
     const supabase = createSupabaseClient();
+    const SUPER_ADMIN_EMAIL = 'epiblue@gmail.com'; // This should be an env var
 
-    const { data: admin, error: adminError } = await supabase.from('admins').select('email').eq('email', admin_email).maybeSingle();
-    if (adminError) throw adminError;
-    if (!admin) {
+    // Authorize the request
+    let requesterIsSuperAdmin = admin_email === SUPER_ADMIN_EMAIL;
+    let requesterIsCompanyAdmin = false;
+
+    if (!requesterIsSuperAdmin) {
+      const { data: adminUser, error: adminError } = await supabase.from('users').select('is_admin, company').eq('email', admin_email).maybeSingle();
+      if (adminError) throw adminError;
+      if (adminUser && adminUser.is_admin && adminUser.company === company) {
+        requesterIsCompanyAdmin = true;
+      }
+    }
+
+    if (!requesterIsSuperAdmin && !requesterIsCompanyAdmin) {
       return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'No autorizado' }) };
+    }
+
+    // Super admin can create company admins, company admins can only create employees
+    if (requesterIsCompanyAdmin && is_admin) {
+        return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'No tienes permisos para crear administradores' }) };
     }
 
     const { data: existingUser, error: existingUserError } = await supabase.from('users').select('id').eq('email', email).maybeSingle();
@@ -39,7 +55,7 @@ export async function handler(event) {
     }
 
     const { password_hash, password_salt } = await scryptHash(password);
-    const userRow = { email, password_hash, password_salt, full_name, company, position, is_admin: false };
+    const userRow = { email, password_hash, password_salt, full_name, company, position, is_admin: is_admin };
     const { data: user, error: userError } = await supabase.from('users').insert(userRow).select().maybeSingle();
     if (userError) throw userError;
 

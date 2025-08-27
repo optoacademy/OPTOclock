@@ -14,45 +14,38 @@ export async function handler(event) {
   }
   
   try {
+    const params = new URLSearchParams(event.rawQuery || '');
+    const admin_email = params.get('admin_email');
+    if (!admin_email) {
+      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Falta el email del admin' }) };
+    }
+
     const supabase = createSupabaseClient();
-    
-    const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('id, email, full_name, company, position, is_admin, created_at')
-      .order('created_at', { ascending: false });
-    
-    if (usersError) {
-      console.error('Users error:', usersError);
-      return {
-        statusCode: 500,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: 'Error obteniendo usuarios' })
-      };
+    const SUPER_ADMIN_EMAIL = 'epiblue@gmail.com'; // This should be an env var
+
+    let query = supabase.from('time_entries').select('*').order('timestamp', { ascending: false }).limit(100);
+
+    if (admin_email !== SUPER_ADMIN_EMAIL) {
+      const { data: adminUser, error: adminError } = await supabase.from('users').select('company').eq('email', admin_email).maybeSingle();
+      if (adminError || !adminUser) {
+        return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'No autorizado' }) };
+      }
+      query = query.eq('company', adminUser.company);
     }
-    
-    const { data: entries, error: entriesError } = await supabase
-      .from('time_entries')
-      .select('*')
-      .order('timestamp', { ascending: false })
-      .limit(100);
-    
+
+    const { data: entries, error: entriesError } = await query;
+
     if (entriesError) {
-      console.error('Entries error:', entriesError);
-      return {
-        statusCode: 500,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: 'Error obteniendo fichajes' })
-      };
+      throw entriesError;
     }
-    
+
     return {
       statusCode: 200,
       headers: corsHeaders,
       body: JSON.stringify({
         ok: true,
-        users: users || [],
-        entries: entries || []
-      })
+        entries: entries || [],
+      }),
     };
     
   } catch (error) {

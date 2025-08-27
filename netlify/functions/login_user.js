@@ -44,6 +44,11 @@ export async function handler(event) {
       return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Credenciales inválidas' }) };
     }
 
+    // This should be an environment variable in a real application
+    const SUPER_ADMIN_EMAIL = 'epiblue@gmail.com';
+
+    const isSuperAdmin = user.email === SUPER_ADMIN_EMAIL;
+
     const safeUser = {
       id: user.id,
       email: user.email,
@@ -51,7 +56,15 @@ export async function handler(event) {
       company: user.company,
       position: user.position,
       is_admin: user.is_admin,
+      is_super_admin: isSuperAdmin,
     };
+
+    if (isSuperAdmin) {
+      const { data: companies, error: companiesError } = await supabase.from('users').select('company');
+      if (companiesError) throw companiesError;
+      safeUser.companies = [...new Set(companies.map(c => c.company).filter(Boolean))];
+    }
+
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ ok: true, user: safeUser }) };
   } catch (error) {
     console.error('Login error:', error);
