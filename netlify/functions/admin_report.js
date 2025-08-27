@@ -1,21 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
-
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS'
-};
-
-const createSupabaseClient = () => {
-  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE);
-};
+import { createSupabaseClient, corsHeaders } from './_helpers.js';
 
 export async function handler(event) {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: corsHeaders, body: '' };
   }
-  
+
   if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
