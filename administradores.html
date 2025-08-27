@@ -29,6 +29,7 @@
       </div>
       <div class="card">
         <h3>Últimos fichajes</h3>
+        <button id="download-pdf" style="margin-bottom: 1rem;">Descargar PDF</button>
         <table id="entries-table">
           <thead>
             <tr>
@@ -46,6 +47,32 @@
   </div>
 
 <script>
+document.getElementById('download-pdf').addEventListener('click', async () => {
+  if (!currentUser) {
+    show('Primero inicia sesión como admin');
+    return;
+  }
+  show('Generando PDF…');
+  try {
+    const response = await fetch(`/api/generate_report?admin_email=${currentUser.email}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al generar el PDF');
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = `reporte-${currentUser.company.toLowerCase().replace(/\s/g, '-')}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    show('PDF generado correctamente.', true);
+  } catch (error) {
+    show('Error: ' + error.message);
+  }
+});
 let currentUser = null;
 const M=document.getElementById('msg');
 function show(s,ok=false){M.textContent=s;M.className = 'message ' + (ok ? 'success' : 'error');}
