@@ -17,12 +17,11 @@
 
     <div id="panel" class="panel" style="display:none;">
       <div class="card">
-        <h3>Crear trabajador</h3>
+        <h3 id="company-name-header"></h3>
         <form id="alta" class="form-grid">
           <input id="a_full" placeholder="Nombre completo" required>
           <input id="a_email" type="email" placeholder="Email" required>
           <input id="a_pass" type="text" placeholder="Contraseña inicial" required>
-          <select id="a_company"><option value="visionacademy">visionacademy</option><option value="eyecare">eyecare</option></select>
           <input id="a_pos" placeholder="Puesto" required>
           <button>Crear trabajador</button>
         </form>
@@ -37,7 +36,6 @@
               <th>Fecha</th>
               <th>Hora</th>
               <th>Tipo</th>
-              <th>Empresa</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -64,7 +62,7 @@ document.getElementById('download-pdf').addEventListener('click', async () => {
     const a = document.createElement('a');
     a.style.display = 'none';
     a.href = url;
-    a.download = `reporte-${currentUser.company.toLowerCase().replace(/\s/g, '-')}.pdf`;
+    a.download = `reporte-${currentUser.company_name.toLowerCase().replace(/\s/g, '-')}.pdf`;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
@@ -90,8 +88,7 @@ document.getElementById('login').addEventListener('submit', async (e)=>{
     show('Acceso concedido ✓', true);
     document.getElementById('login').style.display = 'none';
     document.getElementById('panel').style.display='block';
-    document.getElementById('a_company').value = currentUser.company;
-    document.getElementById('a_company').disabled = true;
+    document.getElementById('company-name-header').textContent = `Crear trabajador para: ${currentUser.company_name}`;
     loadAdminReport(currentUser.email);
   }catch(err){ show('Error: '+err.message); }
 });
@@ -108,11 +105,10 @@ async function loadAdminReport(admin_email) {
     data.entries.forEach(entry => {
       const row = `
         <tr>
-          <td>${entry.user_name}</td>
+          <td>${entry.users.full_name}</td>
           <td>${entry.date_es}</td>
           <td>${entry.time_es}</td>
           <td>${entry.entry_type}</td>
-          <td>${entry.company}</td>
         </tr>
       `;
       tableBody.innerHTML += row;
@@ -130,7 +126,7 @@ document.getElementById('alta').addEventListener('submit', async (e)=>{
     full_name: document.getElementById('a_full').value.trim(),
     email:     document.getElementById('a_email').value.trim(),
     password:  document.getElementById('a_pass').value,
-    company:   currentUser.company,
+    company_id: currentUser.company_id,
     position:  document.getElementById('a_pos').value.trim()
   };
   try{

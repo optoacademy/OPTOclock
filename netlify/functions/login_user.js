@@ -32,7 +32,7 @@ export async function handler(event) {
     }
 
     const supabase = createSupabaseClient();
-    const { data: user, error: userError } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
+    const { data: user, error: userError } = await supabase.from('users').select('*, companies(name)').eq('email', email).maybeSingle();
     if (userError) throw userError;
     if (!user) {
       return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Credenciales inválidas' }) };
@@ -53,16 +53,17 @@ export async function handler(event) {
       id: user.id,
       email: user.email,
       full_name: user.full_name,
-      company: user.company,
+      company_id: user.company_id,
+      company_name: user.companies?.name,
       position: user.position,
       is_admin: user.is_admin,
       is_super_admin: isSuperAdmin,
     };
 
     if (isSuperAdmin) {
-      const { data: companies, error: companiesError } = await supabase.from('users').select('company');
+      const { data: companies, error: companiesError } = await supabase.from('companies').select('id, name');
       if (companiesError) throw companiesError;
-      safeUser.companies = [...new Set(companies.map(c => c.company).filter(Boolean))];
+      safeUser.companies = companies;
     }
 
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ ok: true, user: safeUser }) };

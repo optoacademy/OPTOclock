@@ -19,8 +19,8 @@ export async function handler(event) {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { admin_email, full_name, email, password, company, position, is_admin = false } = body;
-    if (!admin_email || !full_name || !email || !password || !company || !position) {
+    const { admin_email, full_name, email, password, company_id, position, is_admin = false } = body;
+    if (!admin_email || !full_name || !email || !password || !company_id || !position) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Faltan campos' }) };
     }
 
@@ -32,9 +32,9 @@ export async function handler(event) {
     let requesterIsCompanyAdmin = false;
 
     if (!requesterIsSuperAdmin) {
-      const { data: adminUser, error: adminError } = await supabase.from('users').select('is_admin, company').eq('email', admin_email).maybeSingle();
+      const { data: adminUser, error: adminError } = await supabase.from('users').select('is_admin, company_id').eq('email', admin_email).maybeSingle();
       if (adminError) throw adminError;
-      if (adminUser && adminUser.is_admin && adminUser.company === company) {
+      if (adminUser && adminUser.is_admin && adminUser.company_id == company_id) {
         requesterIsCompanyAdmin = true;
       }
     }
@@ -43,9 +43,8 @@ export async function handler(event) {
       return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'No autorizado' }) };
     }
 
-    // Super admin can create company admins, company admins can only create employees
     if (requesterIsCompanyAdmin && is_admin) {
-        return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'No tienes permisos para crear administradores' }) };
+      return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'No tienes permisos para crear administradores' }) };
     }
 
     const { data: existingUser, error: existingUserError } = await supabase.from('users').select('id').eq('email', email).maybeSingle();
@@ -55,8 +54,8 @@ export async function handler(event) {
     }
 
     const { password_hash, password_salt } = await scryptHash(password);
-    const userRow = { email, password_hash, password_salt, full_name, company, position, is_admin: is_admin };
-    const { data: user, error: userError } = await supabase.from('users').insert(userRow).select().maybeSingle();
+    const userRow = { email, password_hash, password_salt, full_name, company_id, position, is_admin };
+    const { data: user, error: userError } = await supabase.from('users').insert(userRow).select().single();
     if (userError) throw userError;
 
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ ok: true, user }) };

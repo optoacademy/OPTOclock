@@ -88,16 +88,28 @@
       }
     });
 
-    companyForm.addEventListener('submit', (e) => {
+    companyForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const companyName = companyForm.company_name.value.trim();
-      if (companyName && !companies.includes(companyName)) {
-        companies.push(companyName);
+      if (!companyName) {
+        return showMessage('El nombre de la empresa no puede estar vacío.', false);
+      }
+      showMessage('Creando empresa…');
+      try {
+        const response = await fetch('/api/create_company', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ company_name: companyName, admin_email: currentUser.email }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Error al crear la empresa');
+
+        companies.push(data.company);
         updateCompanySelect();
-        showMessage(`Empresa "${companyName}" añadida a la lista.`, true);
+        showMessage(`Empresa "${data.company.name}" creada.`, true);
         companyForm.reset();
-      } else {
-        showMessage('El nombre de la empresa no puede estar vacío o ya existe.', false);
+      } catch (error) {
+        showMessage('Error: ' + error.message);
       }
     });
 
@@ -105,8 +117,8 @@
       companySelect.innerHTML = '';
       companies.forEach(company => {
         const option = document.createElement('option');
-        option.value = company;
-        option.textContent = company;
+        option.value = company.id;
+        option.textContent = company.name;
         companySelect.appendChild(option);
       });
     }
@@ -119,10 +131,9 @@
         full_name: adminForm.full_name.value.trim(),
         email: adminForm.admin_email.value.trim(),
         password: adminForm.admin_password.value,
-        company: adminForm.company_select.value,
+        company_id: adminForm.company_select.value,
         position: 'Admin',
         is_admin: true,
-        // We need to send the super admin's email for authorization
         admin_email: currentUser.email
       };
 
@@ -133,9 +144,7 @@
           body: JSON.stringify(body),
         });
         const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || 'Error al crear el administrador');
-        }
+        if (!response.ok) throw new Error(data.error || 'Error al crear el administrador');
         showMessage('Administrador creado correctamente.', true);
         adminForm.reset();
       } catch (error) {

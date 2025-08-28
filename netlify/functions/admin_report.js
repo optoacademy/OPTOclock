@@ -23,14 +23,14 @@ export async function handler(event) {
     const supabase = createSupabaseClient();
     const SUPER_ADMIN_EMAIL = 'epiblue@gmail.com'; // This should be an env var
 
-    let query = supabase.from('time_entries').select('*').order('timestamp', { ascending: false }).limit(100);
+    let query = supabase.from('time_entries').select('*, users(full_name)').order('timestamp', { ascending: false }).limit(100);
 
     if (admin_email !== SUPER_ADMIN_EMAIL) {
-      const { data: adminUser, error: adminError } = await supabase.from('users').select('company').eq('email', admin_email).maybeSingle();
+      const { data: adminUser, error: adminError } = await supabase.from('users').select('company_id').eq('email', admin_email).maybeSingle();
       if (adminError || !adminUser) {
         return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'No autorizado' }) };
       }
-      query = query.eq('company', adminUser.company);
+      query = query.eq('company_id', adminUser.company_id);
     }
 
     const { data: entries, error: entriesError } = await query;
