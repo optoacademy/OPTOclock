@@ -1,21 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
-
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
-};
-
-const createSupabaseClient = () => {
-  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE);
-};
+import { createSupabaseClient, corsHeaders } from './_helpers.js';
 
 export async function handler(event) {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: corsHeaders, body: '' };
   }
-  
+
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -26,21 +15,13 @@ export async function handler(event) {
   
   try {
     const body = JSON.parse(event.body || '{}');
-    const { user_id, user_name, company, entry_type, date_es, time_es } = body;
+    const { user_id, user_name, company_id, entry_type, date_es, time_es } = body;
     
-    if (!user_id || !user_name || !company || !entry_type || !date_es || !time_es) {
+    if (!user_id || !user_name || !company_id || !entry_type || !date_es || !time_es) {
       return {
         statusCode: 400,
         headers: corsHeaders,
         body: JSON.stringify({ error: 'Todos los campos son requeridos' })
-      };
-    }
-    
-    if (!['eyecare', 'visionacademy'].includes(company.toLowerCase())) {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: 'Empresa no válida' })
       };
     }
     
@@ -71,7 +52,7 @@ export async function handler(event) {
     const entryRow = {
       user_id,
       user_name,
-      company: company.toLowerCase(),
+      company_id,
       entry_type,
       date_es,
       time_es,
@@ -82,7 +63,7 @@ export async function handler(event) {
       .from('time_entries')
       .insert(entryRow)
       .select()
-      .maybeSingle();
+      .single();
     
     if (insertError) {
       console.error('Insert error:', insertError);

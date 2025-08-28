@@ -2,10 +2,13 @@
 <html lang="es">
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Configurar primer admin</title>
-<body style="font-family:system-ui;max-width:640px;margin:24px auto;padding:16px">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="container">
   <h2>Crear primer administrador</h2>
-  <div id="msg" style="margin:8px 0;padding:8px;border:1px solid #ddd"></div>
-  <form id="f" style="display:grid;gap:10px">
+  <div id="msg" class="message"></div>
+  <form id="f" class="form-grid">
     <input id="full_name" placeholder="Nombre completo" required>
     <input id="email" type="email" placeholder="Email (ej. epiblue@gmail.com)" required>
     <input id="password" type="password" placeholder="Contraseña (ej. Erucampo1.)" required>
@@ -13,18 +16,41 @@
     <input id="position" value="Admin" required>
     <button>Crear primer admin</button>
   </form>
+</div>
 <script>
-const m=document.getElementById('msg');
-const show=(t,ok)=>{m.textContent=t;m.style.background=ok?'#ecfdf5':'#fef2f2'};
-f.addEventListener('submit', async (e)=>{
-  e.preventDefault(); show('Creando…');
-  const body={full_name:f.full_name.value.trim(), email:f.email.value.trim(), password:f.password.value, company:f.company.value, position:f.position.value.trim()};
+const msg=document.getElementById('msg');
+const form=document.getElementById('f');
+
+function showMessage(message, isSuccess = false) {
+  msg.textContent = message;
+  msg.className = 'message ' + (isSuccess ? 'success' : 'error');
+}
+
+form.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  showMessage('Creando…');
+  const body = {
+    full_name: form.full_name.value.trim(),
+    email: form.email.value.trim(),
+    password: form.password.value,
+    company: form.company.value,
+    position: form.position.value.trim()
+  };
   try{
-    const r=await fetch('/api/bootstrap_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    const t=await r.text(); let j={}; try{ j=JSON.parse(t) }catch{ j={ raw:t } }
-    if(!r.ok) throw new Error(j.error||t);
-    show('Creado ✓ Ahora borra admin-setup.html del repo.', true);
-  }catch(err){ show('Error: '+err.message); }
+    const response = await fetch('/api/bootstrap_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data = await response.json();
+    if (!response.ok) {
+      if (response.status === 403) {
+        throw new Error('Ya existe un administrador. Por seguridad, este formulario ha sido desactivado.');
+        form.style.display = 'none';
+      }
+      throw new Error(data.error || 'Error desconocido');
+    }
+    showMessage('Creado ✓ Ahora borra admin-setup.html del repo.', true);
+    form.style.display = 'none';
+  }catch(err){
+    showMessage('Error: ' + err.message);
+  }
 });
 </script>
 </body>

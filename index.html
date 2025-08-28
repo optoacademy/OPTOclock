@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fichaje de empleados · OPTOClock</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Fichaje de empleados</h2>
+    <div id="msg" class="message"></div>
+
+    <form id="login-form" class="form-grid">
+      <input id="email" type="email" placeholder="Email" required>
+      <input id="password" type="password" placeholder="Contraseña" required>
+      <button type="submit">Entrar</button>
+    </form>
+
+    <div id="employee-panel" class="panel" style="display:none;">
+      <h3 id="welcome-message"></h3>
+      <div class="card">
+        <h4>Registrar fichaje</h4>
+        <form id="clock-form">
+          <select id="entry_type" required>
+            <option value="entrada">Entrada</option>
+            <option value="salida">Salida</option>
+          </select>
+          <button type="submit">Registrar</button>
+        </form>
+      </div>
+      <div class="card">
+        <h4>Mis fichajes</h4>
+        <ul id="entries-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const loginForm = document.getElementById('login-form');
+    const employeePanel = document.getElementById('employee-panel');
+    const welcomeMessage = document.getElementById('welcome-message');
+    const clockForm = document.getElementById('clock-form');
+    const entriesList = document.getElementById('entries-list');
+    const msg = document.getElementById('msg');
+
+    let currentUser = null;
+
+    function showMessage(message, isSuccess = false) {
+      msg.textContent = message;
+      msg.className = 'message ' + (isSuccess ? 'success' : 'error');
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      showMessage('Comprobando…');
+      const email = loginForm.email.value.trim();
+      const password = loginForm.password.value;
+
+      try {
+        const response = await fetch('/api/login_user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Error en el login');
+        }
+        currentUser = data.user;
+        showMessage('Acceso concedido ✓', true);
+        loginForm.style.display = 'none';
+        employeePanel.style.display = 'block';
+        welcomeMessage.textContent = `Hola, ${currentUser.full_name}`;
+        loadEntries();
+      } catch (error) {
+        showMessage('Error: ' + error.message);
+      }
+    });
+
+    clockForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const entry_type = clockForm.entry_type.value;
+      const now = new Date();
+      const date_es = now.toLocaleDateString('es-ES');
+      const time_es = now.toLocaleTimeString('es-ES');
+
+      try {
+        const response = await fetch('/api/clock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: currentUser.id,
+            user_name: currentUser.full_name,
+            company_id: currentUser.company_id,
+            entry_type,
+            date_es,
+            time_es,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Error al fichar');
+        }
+        showMessage(data.message, true);
+        loadEntries();
+      } catch (error) {
+        showMessage('Error: ' + error.message);
+      }
+    });
+
+    async function loadEntries() {
+      try {
+        const response = await fetch(`/api/list_entries?user_id=${currentUser.id}`);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Error al cargar fichajes');
+        }
+        entriesList.innerHTML = '';
+        data.entries.forEach(entry => {
+          const li = document.createElement('li');
+          li.textContent = `${entry.date_es} ${entry.time_es} - ${entry.entry_type}`;
+          entriesList.appendChild(li);
+        });
+      } catch (error) {
+        showMessage('Error: ' + error.message);
+      }
+    }
+  </script>
+</body>
+</html>

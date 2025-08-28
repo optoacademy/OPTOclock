@@ -2,32 +2,78 @@
 <html lang="es">
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Administración · OPTOClock</title>
-<body style="font-family:system-ui;max-width:800px;margin:24px auto;padding:16px">
-  <h2>Acceso administradores</h2>
-  <div id="msg" style="padding:8px;border:1px solid #ddd;margin-bottom:8px"></div>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Acceso administradores</h2>
+    <div id="msg" class="message"></div>
 
-  <form id="login" style="display:grid;gap:8px;max-width:360px">
-    <input id="l_email" type="email" placeholder="Email admin" required>
-    <input id="l_pass" type="password" placeholder="Contraseña" required>
-    <button>Entrar</button>
-  </form>
-
-  <div id="panel" style="display:none;margin-top:24px">
-    <h3>Crear trabajador</h3>
-    <form id="alta" style="display:grid;gap:8px;max-width:420px">
-      <input id="a_full" placeholder="Nombre completo" required>
-      <input id="a_email" type="email" placeholder="Email" required>
-      <input id="a_pass" type="text" placeholder="Contraseña inicial" required>
-      <select id="a_company"><option value="visionacademy">visionacademy</option><option value="eyecare">eyecare</option></select>
-      <input id="a_pos" placeholder="Puesto" required>
-      <button>Crear trabajador</button>
+    <form id="login" class="form-grid">
+      <input id="l_email" type="email" placeholder="Email admin" required>
+      <input id="l_pass" type="password" placeholder="Contraseña" required>
+      <button>Entrar</button>
     </form>
+
+    <div id="panel" class="panel" style="display:none;">
+      <div class="card">
+        <h3 id="company-name-header"></h3>
+        <form id="alta" class="form-grid">
+          <input id="a_full" placeholder="Nombre completo" required>
+          <input id="a_email" type="email" placeholder="Email" required>
+          <input id="a_pass" type="text" placeholder="Contraseña inicial" required>
+          <input id="a_pos" placeholder="Puesto" required>
+          <button>Crear trabajador</button>
+        </form>
+      </div>
+      <div class="card">
+        <h3>Últimos fichajes</h3>
+        <button id="download-pdf" style="margin-bottom: 1rem;">Descargar PDF</button>
+        <table id="entries-table">
+          <thead>
+            <tr>
+              <th>Empleado</th>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Tipo</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
 <script>
-let ADMIN_EMAIL = null;
+document.getElementById('download-pdf').addEventListener('click', async () => {
+  if (!currentUser) {
+    show('Primero inicia sesión como admin');
+    return;
+  }
+  show('Generando PDF…');
+  try {
+    const response = await fetch(`/api/generate_report?admin_email=${currentUser.email}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al generar el PDF');
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = `reporte-${currentUser.company_name.toLowerCase().replace(/\s/g, '-')}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    show('PDF generado correctamente.', true);
+  } catch (error) {
+    show('Error: ' + error.message);
+  }
+});
+let currentUser = null;
 const M=document.getElementById('msg');
-function show(s,ok=false){M.textContent=s;M.style.background=ok?'#ecfdf5':'#fef2f2'}
+function show(s,ok=false){M.textContent=s;M.className = 'message ' + (ok ? 'success' : 'error');}
 
 document.getElementById('login').addEventListener('submit', async (e)=>{
   e.preventDefault(); show('Comprobando…');
@@ -35,30 +81,58 @@ document.getElementById('login').addEventListener('submit', async (e)=>{
   const password = document.getElementById('l_pass').value;
   try{
     const r=await fetch('/api/login_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
-    const t=await r.text(); let j={}; try{ j=JSON.parse(t) }catch{ j={raw:t} }
-    if(!r.ok) throw new Error(j.error||t);
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.error||'Error en el login');
     if(!j.user?.is_admin) throw new Error('No es administrador');
-    ADMIN_EMAIL = j.user.email;
+    currentUser = j.user;
     show('Acceso concedido ✓', true);
+    document.getElementById('login').style.display = 'none';
     document.getElementById('panel').style.display='block';
+    document.getElementById('company-name-header').textContent = `Crear trabajador para: ${currentUser.company_name}`;
+    loadAdminReport(currentUser.email);
   }catch(err){ show('Error: '+err.message); }
 });
 
+async function loadAdminReport(admin_email) {
+  try {
+    const response = await fetch(`/api/admin_report?admin_email=${admin_email}`);
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Error al cargar el reporte');
+    }
+    const tableBody = document.querySelector('#entries-table tbody');
+    tableBody.innerHTML = '';
+    data.entries.forEach(entry => {
+      const row = `
+        <tr>
+          <td>${entry.users.full_name}</td>
+          <td>${entry.date_es}</td>
+          <td>${entry.time_es}</td>
+          <td>${entry.entry_type}</td>
+        </tr>
+      `;
+      tableBody.innerHTML += row;
+    });
+  } catch (error) {
+    show('Error: ' + error.message);
+  }
+}
+
 document.getElementById('alta').addEventListener('submit', async (e)=>{
   e.preventDefault(); show('Creando trabajador…');
-  if(!ADMIN_EMAIL) return show('Primero inicia sesión como admin');
+  if(!currentUser) return show('Primero inicia sesión como admin');
   const body={
-    admin_email: ADMIN_EMAIL,
+    admin_email: currentUser.email,
     full_name: document.getElementById('a_full').value.trim(),
     email:     document.getElementById('a_email').value.trim(),
     password:  document.getElementById('a_pass').value,
-    company:   document.getElementById('a_company').value,
+    company_id: currentUser.company_id,
     position:  document.getElementById('a_pos').value.trim()
   };
   try{
     const r=await fetch('/api/register_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    const t=await r.text(); let j={}; try{ j=JSON.parse(t) }catch{ j={raw:t} }
-    if(!r.ok) throw new Error(j.error||t);
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.error||'Error al crear trabajador');
     show('Trabajador creado ✓', true);
     e.target.reset();
   }catch(err){ show('Error: '+err.message); }
