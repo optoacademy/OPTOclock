@@ -2,49 +2,97 @@
 <html lang="es">
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Administración · OPTOClock</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+ETQqy3iR2cM5D+eO/koQEu7iSgStAh8Q" crossorigin="anonymous">
 <link rel="stylesheet" href="assets/style.css">
 </head>
-<body>
-  <div class="container">
-    <h2>Acceso administradores</h2>
-    <div id="msg" class="message"></div>
+<body class="bg-light">
+  <div class="container py-5">
+    <div class="text-center">
+        <h2 class="mb-4">Panel de Administración</h2>
+    </div>
+    <div id="msg" class="alert" style="display:none;"></div>
 
-    <form id="login" class="form-grid">
-      <input id="l_email" type="email" placeholder="Email admin" required>
-      <input id="l_pass" type="password" placeholder="Contraseña" required>
-      <button>Entrar</button>
-    </form>
+    <div id="login-container" class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h3 class="card-title text-center mb-4">Acceso Administradores</h3>
+                    <form id="login">
+                        <div class="mb-3">
+                            <label for="l_email" class="form-label">Email</label>
+                            <input id="l_email" type="email" class="form-control" placeholder="tu@email.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="l_pass" class="form-label">Contraseña</label>
+                            <input id="l_pass" type="password" class="form-control" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Entrar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <div id="panel" class="panel" style="display:none;">
-      <div class="card">
-        <h3 id="company-name-header"></h3>
-        <form id="alta" class="form-grid">
-          <input id="a_full" placeholder="Nombre completo" required>
-          <input id="a_email" type="email" placeholder="Email" required>
-          <input id="a_pass" type="text" placeholder="Contraseña inicial" required>
-          <input id="a_pos" placeholder="Puesto" required>
-          <button>Crear trabajador</button>
-        </form>
-      </div>
-      <div class="card">
-        <h3>Últimos fichajes</h3>
-        <button id="download-pdf" style="margin-bottom: 1rem;">Descargar PDF</button>
-        <table id="entries-table">
-          <thead>
-            <tr>
-              <th>Empleado</th>
-              <th>Fecha</th>
-              <th>Hora</th>
-              <th>Tipo</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+    <div id="panel" style="display:none;">
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h3 class="card-title" id="company-name-header"></h3>
+                        <form id="alta">
+                            <div class="mb-3"><label for="a_full" class="form-label">Nombre completo</label><input id="a_full" class="form-control" required></div>
+                            <div class="mb-3"><label for="a_email" class="form-label">Email</label><input id="a_email" type="email" class="form-control" required></div>
+                            <div class="mb-3"><label for="a_pass" class="form-label">Contraseña inicial</label><input id="a_pass" type="text" class="form-control" required></div>
+                            <div class="mb-3"><label for="a_pos" class="form-label">Puesto</label><input id="a_pos" class="form-control" required></div>
+                            <button type="submit" class="btn btn-primary w-100">Crear trabajador</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-8">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h3 class="card-title">Gestionar Empleados</h3>
+                        <div class="table-responsive">
+                            <table id="users-table" class="table table-striped">
+                                <thead>
+                                    <tr><th>Nombre</th><th>Email</th><th>Puesto</th><th>Acción</th></tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3 class="card-title mb-0">Últimos fichajes</h3>
+                            <button id="download-pdf" class="btn btn-secondary">Descargar PDF</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="entries-table" class="table">
+                                <thead>
+                                    <tr><th>Empleado</th><th>Fecha</th><th>Hora</th><th>Tipo</th></tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="text-center mt-4">
+        <a href="index.html">Volver a la página principal</a>
     </div>
   </div>
 
-<script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcX/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+  <script>
 document.getElementById('download-pdf').addEventListener('click', async () => {
   if (!currentUser) {
     show('Primero inicia sesión como admin');
@@ -73,7 +121,7 @@ document.getElementById('download-pdf').addEventListener('click', async () => {
 });
 let currentUser = null;
 const M=document.getElementById('msg');
-function show(s,ok=false){M.textContent=s;M.className = 'message ' + (ok ? 'success' : 'error');}
+function show(s,ok=false){M.textContent=s;M.className = 'alert ' + (ok ? 'alert-success' : 'alert-danger'); M.style.display = 'block';}
 
 document.getElementById('login').addEventListener('submit', async (e)=>{
   e.preventDefault(); show('Comprobando…');
@@ -86,12 +134,63 @@ document.getElementById('login').addEventListener('submit', async (e)=>{
     if(!j.user?.is_admin) throw new Error('No es administrador');
     currentUser = j.user;
     show('Acceso concedido ✓', true);
-    document.getElementById('login').style.display = 'none';
+    document.getElementById('login-container').style.display = 'none';
     document.getElementById('panel').style.display='block';
     document.getElementById('company-name-header').textContent = `Crear trabajador para: ${currentUser.company_name}`;
     loadAdminReport(currentUser.email);
+    loadUsers(currentUser.email);
   }catch(err){ show('Error: '+err.message); }
 });
+
+async function loadUsers(admin_email) {
+    try {
+        const response = await fetch(`/api/list_users?admin_email=${admin_email}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Error al cargar usuarios');
+
+        const tableBody = document.querySelector('#users-table tbody');
+        tableBody.innerHTML = '';
+        data.users.forEach(user => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${user.full_name}</td>
+                <td>${user.email}</td>
+                <td>${user.position}</td>
+                <td><button class="delete-btn" data-user-id="${user.id}">Eliminar</button></td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const userIdToDelete = e.target.dataset.userId;
+                if (confirm('¿Estás seguro de que quieres eliminar a este usuario? Esta acción no se puede deshacer.')) {
+                    await deleteUser(userIdToDelete);
+                }
+            });
+        });
+    } catch (error) {
+        show('Error: ' + error.message);
+    }
+}
+
+async function deleteUser(userIdToDelete) {
+    show('Eliminando usuario…');
+    try {
+        const response = await fetch('/api/delete_user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id_to_delete: userIdToDelete, admin_email: currentUser.email }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Error al eliminar el usuario');
+
+        show('Usuario eliminado correctamente.', true);
+        loadUsers(currentUser.email); // Refresh the user list
+    } catch (error) {
+        show('Error: ' + error.message);
+    }
+}
 
 async function loadAdminReport(admin_email) {
   try {
@@ -135,6 +234,7 @@ document.getElementById('alta').addEventListener('submit', async (e)=>{
     if(!r.ok) throw new Error(j.error||'Error al crear trabajador');
     show('Trabajador creado ✓', true);
     e.target.reset();
+    loadUsers(currentUser.email); // Refresh user list
   }catch(err){ show('Error: '+err.message); }
 });
 </script>
