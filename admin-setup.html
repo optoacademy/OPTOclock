@@ -1,29 +1,43 @@
 <!doctype html>
 <html lang="es">
+<head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Configurar primer admin</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+ETQqy3iR2cM5D+eO/koQEu7iSgStAh8Q" crossorigin="anonymous">
 <link rel="stylesheet" href="assets/style.css">
 </head>
-<body>
-<div class="container">
-  <h2>Crear primer administrador</h2>
-  <div id="msg" class="message"></div>
-  <form id="f" class="form-grid">
-    <input id="full_name" placeholder="Nombre completo" required>
-    <input id="email" type="email" placeholder="Email (ej. epiblue@gmail.com)" required>
-    <input id="password" type="password" placeholder="Contraseña (ej. Erucampo1.)" required>
-    <select id="company"><option value="visionacademy">visionacademy</option><option value="eyecare">eyecare</option></select>
-    <input id="position" value="Admin" required>
-    <button>Crear primer admin</button>
-  </form>
+<body class="bg-light">
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h2 class="card-title text-center mb-4">Crear Primer Administrador</h2>
+                    <p class="text-muted text-center">Este formulario solo debe usarse una vez para crear la primera empresa y su administrador. Después, este archivo (`admin-setup.html`) debe ser eliminado.</p>
+                    <div id="msg" class="alert" style="display:none;"></div>
+                    <form id="f">
+                        <div class="mb-3"><label for="company_name" class="form-label">Nombre de la Primera Empresa</label><input id="company_name" class="form-control" required></div>
+                        <hr>
+                        <div class="mb-3"><label for="full_name" class="form-label">Nombre completo del Administrador</label><input id="full_name" class="form-control" required></div>
+                        <div class="mb-3"><label for="email" class="form-label">Email del Administrador</label><input id="email" type="email" class="form-control" required></div>
+                        <div class="mb-3"><label for="password" class="form-label">Contraseña</label><input id="password" type="password" class="form-control" required></div>
+                        <input id="position" type="hidden" value="Admin">
+                        <div class="d-grid"><button type="submit" class="btn btn-primary">Crear Empresa y Admin</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcX/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 <script>
 const msg=document.getElementById('msg');
 const form=document.getElementById('f');
 
 function showMessage(message, isSuccess = false) {
   msg.textContent = message;
-  msg.className = 'message ' + (isSuccess ? 'success' : 'error');
+  msg.className = 'alert ' + (isSuccess ? 'alert-success' : 'alert-danger');
+  msg.style.display = 'block';
 }
 
 form.addEventListener('submit', async (e)=>{
@@ -33,7 +47,7 @@ form.addEventListener('submit', async (e)=>{
     full_name: form.full_name.value.trim(),
     email: form.email.value.trim(),
     password: form.password.value,
-    company: form.company.value,
+    company_name: form.company_name.value.trim(),
     position: form.position.value.trim()
   };
   try{
@@ -41,15 +55,15 @@ form.addEventListener('submit', async (e)=>{
     const data = await response.json();
     if (!response.ok) {
       if (response.status === 403) {
-        throw new Error('Ya existe un administrador. Por seguridad, este formulario ha sido desactivado.');
-        form.style.display = 'none';
+        form.innerHTML = '<p class="text-danger text-center">La aplicación ya ha sido configurada. Por seguridad, este formulario ha sido desactivado.</p>';
+        throw new Error('Ya existe un administrador.');
       }
       throw new Error(data.error || 'Error desconocido');
     }
     showMessage('Creado ✓ Ahora borra admin-setup.html del repo.', true);
     form.style.display = 'none';
   }catch(err){
-    showMessage('Error: ' + err.message);
+    showMessage('Error: ' + err.message, false);
   }
 });
 </script>

@@ -4,52 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bienvenido a OPTOClock</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+ETQqy3iR2cM5D+eO/koQEu7iSgStAh8Q" crossorigin="anonymous">
   <link rel="stylesheet" href="assets/style.css">
-  <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      text-align: center;
-    }
-    .portal-container {
-      max-width: 500px;
-    }
-    .portal-actions a {
-      display: block;
-      margin: 1rem 0;
-      padding: 1rem 1.5rem;
-      font-size: 1.25rem;
-      text-decoration: none;
-      border-radius: 0.5rem;
-    }
-    .employee-btn {
-      background-color: #2563eb;
-      color: #ffffff;
-    }
-    .admin-btn {
-      background-color: #4b5563;
-      color: #ffffff;
-    }
-    .super-admin-link {
-        margin-top: 3rem;
-        font-size: 0.875rem;
-    }
-  </style>
 </head>
-<body>
-  <div class="portal-container">
-    <img src="assets/logo.svg" alt="OPTOClock Logo" style="max-width: 150px; margin-bottom: 2rem;">
-    <h1>Bienvenido a OPTOClock</h1>
-    <p>Tu solución para el control horario.</p>
-    <div class="portal-actions">
-      <a href="empleado.html" class="employee-btn">Acceso Empleados</a>
-      <a href="administradores.html" class="admin-btn">Acceso Administradores</a>
-    </div>
-    <div class="super-admin-link">
-      <a href="super-admin.html">Acceso Super Admin</a>
+<body class="bg-light">
+  <div class="container">
+    <div class="row justify-content-center align-items-center vh-100">
+      <div class="col-md-6 text-center">
+        <img src="assets/logo.svg" alt="OPTOClock Logo" class="mb-4" style="max-width: 150px;">
+        <h1 class="display-5 mb-3">Bienvenido a OPTOClock</h1>
+        <p class="lead mb-4">Tu solución para el control horario.</p>
+        <div class="d-grid gap-3">
+          <a href="empleado.html" class="btn btn-primary btn-lg">Acceso Empleados</a>
+          <a href="administradores.html" class="btn btn-secondary btn-lg">Acceso Administradores</a>
+        </div>
+        <div class="mt-5">
+          <a href="super-admin.html">Acceso Super Admin</a>
+        </div>
+      </div>
     </div>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcX/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 </body>
 </html>

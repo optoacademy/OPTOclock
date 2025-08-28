@@ -4,44 +4,71 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Super Admin · OPTOClock</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+ETQqy3iR2cM5D+eO/koQEu7iSgStAh8Q" crossorigin="anonymous">
   <link rel="stylesheet" href="assets/style.css">
 </head>
-<body>
-  <div class="container">
-    <h2>Super Admin</h2>
-    <div id="msg" class="message"></div>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="text-center">
+            <h2 class="mb-4">Panel de Super Administración</h2>
+        </div>
+        <div id="msg" class="alert" style="display:none;"></div>
 
-    <form id="login-form" class="form-grid">
-      <input id="email" type="email" placeholder="Email" required>
-      <input id="password" type="password" placeholder="Contraseña" required>
-      <button type="submit">Entrar</button>
-    </form>
+        <div id="login-container" class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <h3 class="card-title text-center mb-4">Acceso Super Admin</h3>
+                        <form id="login-form">
+                            <div class="mb-3"><label for="email" class="form-label">Email</label><input id="email" type="email" class="form-control" required></div>
+                            <div class="mb-3"><label for="password" class="form-label">Contraseña</label><input id="password" type="password" class="form-control" required></div>
+                            <div class="d-grid"><button type="submit" class="btn btn-primary">Entrar</button></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    <div id="super-admin-panel" class="panel" style="display:none;">
-      <h3 id="welcome-message"></h3>
-      <div class="card">
-        <h4>Crear nueva empresa</h4>
-        <form id="company-form" class="form-grid">
-          <input id="company_name" placeholder="Nombre de la empresa" required>
-          <button type="submit">Añadir empresa</button>
-        </form>
-      </div>
-      <div class="card">
-        <h4>Crear administrador de empresa</h4>
-        <form id="admin-form" class="form-grid">
-          <select id="company_select" required></select>
-          <input id="full_name" placeholder="Nombre completo del admin" required>
-          <input id="admin_email" type="email" placeholder="Email del admin" required>
-          <input id="admin_password" type="password" placeholder="Contraseña inicial" required>
-          <button type="submit">Crear admin</button>
-        </form>
-      </div>
+        <div id="super-admin-panel" style="display:none;">
+            <h3 id="welcome-message" class="text-center mb-4"></h3>
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h4 class="card-title">Crear Nueva Empresa</h4>
+                            <form id="company-form">
+                                <div class="mb-3"><label for="company_name" class="form-label">Nombre de la empresa</label><input id="company_name" class="form-control" required></div>
+                                <button type="submit" class="btn btn-primary w-100">Añadir Empresa</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h4 class="card-title">Crear Administrador de Empresa</h4>
+                            <form id="admin-form">
+                                <div class="mb-3"><label for="company_select" class="form-label">Empresa</label><select id="company_select" class="form-select" required></select></div>
+                                <div class="mb-3"><label for="full_name" class="form-label">Nombre completo del admin</label><input id="full_name" class="form-control" required></div>
+                                <div class="mb-3"><label for="admin_email" class="form-label">Email del admin</label><input id="admin_email" type="email" class="form-control" required></div>
+                                <div class="mb-3"><label for="admin_password" class="form-label">Contraseña inicial</label><input id="admin_password" type="password" class="form-control" required></div>
+                                <button type="submit" class="btn btn-success w-100">Crear Admin</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="text-center mt-4">
+            <a href="index.html">Volver a la página principal</a>
+        </div>
     </div>
-  </div>
 
-  <script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcX/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <script>
     const loginForm = document.getElementById('login-form');
     const superAdminPanel = document.getElementById('super-admin-panel');
+    const loginContainer = document.getElementById('login-container');
     const welcomeMessage = document.getElementById('welcome-message');
     const companyForm = document.getElementById('company-form');
     const adminForm = document.getElementById('admin-form');
@@ -53,7 +80,8 @@
 
     function showMessage(message, isSuccess = false) {
       msg.textContent = message;
-      msg.className = 'message ' + (isSuccess ? 'success' : 'error');
+      msg.className = 'alert ' + (isSuccess ? 'alert-success' : 'alert-danger');
+      msg.style.display = 'block';
     }
 
     loginForm.addEventListener('submit', async (e) => {
