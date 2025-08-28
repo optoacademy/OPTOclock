@@ -27,6 +27,20 @@
         </form>
       </div>
       <div class="card">
+        <h3>Gestionar Empleados</h3>
+        <table id="users-table">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Puesto</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+      </div>
+      <div class="card">
         <h3>Últimos fichajes</h3>
         <button id="download-pdf" style="margin-bottom: 1rem;">Descargar PDF</button>
         <table id="entries-table">
@@ -90,8 +104,59 @@ document.getElementById('login').addEventListener('submit', async (e)=>{
     document.getElementById('panel').style.display='block';
     document.getElementById('company-name-header').textContent = `Crear trabajador para: ${currentUser.company_name}`;
     loadAdminReport(currentUser.email);
+    loadUsers(currentUser.email);
   }catch(err){ show('Error: '+err.message); }
 });
+
+async function loadUsers(admin_email) {
+    try {
+        const response = await fetch(`/api/list_users?admin_email=${admin_email}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Error al cargar usuarios');
+
+        const tableBody = document.querySelector('#users-table tbody');
+        tableBody.innerHTML = '';
+        data.users.forEach(user => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${user.full_name}</td>
+                <td>${user.email}</td>
+                <td>${user.position}</td>
+                <td><button class="delete-btn" data-user-id="${user.id}">Eliminar</button></td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const userIdToDelete = e.target.dataset.userId;
+                if (confirm('¿Estás seguro de que quieres eliminar a este usuario? Esta acción no se puede deshacer.')) {
+                    await deleteUser(userIdToDelete);
+                }
+            });
+        });
+    } catch (error) {
+        show('Error: ' + error.message);
+    }
+}
+
+async function deleteUser(userIdToDelete) {
+    show('Eliminando usuario…');
+    try {
+        const response = await fetch('/api/delete_user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id_to_delete: userIdToDelete, admin_email: currentUser.email }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Error al eliminar el usuario');
+
+        show('Usuario eliminado correctamente.', true);
+        loadUsers(currentUser.email); // Refresh the user list
+    } catch (error) {
+        show('Error: ' + error.message);
+    }
+}
 
 async function loadAdminReport(admin_email) {
   try {
@@ -135,6 +200,7 @@ document.getElementById('alta').addEventListener('submit', async (e)=>{
     if(!r.ok) throw new Error(j.error||'Error al crear trabajador');
     show('Trabajador creado ✓', true);
     e.target.reset();
+    loadUsers(currentUser.email); // Refresh user list
   }catch(err){ show('Error: '+err.message); }
 });
 </script>
