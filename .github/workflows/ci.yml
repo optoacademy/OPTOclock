@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: 8
+        run_install: false
+
+    - name: Get pnpm store directory
+      id: pnpm-cache
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+    - name: Setup pnpm cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Lint
+      run: pnpm lint
+
+    # We need a running database for some tests and for the build step (prisma generate)
+    # We will use Supabase CLI to spin up a local environment.
+    - name: Start Supabase
+      uses: supabase/setup-cli@v1
+      with:
+        version: latest
+
+    # TODO: This step needs to be configured once Supabase is integrated.
+    # For now, we assume a shadow DB or mock is used.
+    # - name: Run Migrations on Shadow DB
+    #   env:
+    #     DATABASE_URL: ${{ secrets.SHADOW_DATABASE_URL }}
+    #   run: pnpm prisma migrate deploy
+
+    - name: Run unit tests
+      run: pnpm test
+
+    - name: Install Playwright Browsers
+      run: pnpm exec playwright install --with-deps
+
+    # TODO: E2E tests will fail until the app is built out and a test DB is seeded.
+    # This step is included as a placeholder.
+    # - name: Run e2e tests
+    #   run: pnpm test:e2e
+
+    - name: Build
+      run: pnpm build
+
+    # Here you could add a step to upload build artifacts
+    # - name: Upload artifact
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: nextjs-app
+    #     path: .next/

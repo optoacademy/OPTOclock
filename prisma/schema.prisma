@@ -1,0 +1,263 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // for migrations
+}
+
+// ENUMS
+
+enum Role {
+  ORG_ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+enum ClockEventType {
+  IN
+  OUT
+  BREAK_START
+  BREAK_END
+}
+
+enum ClockEventSource {
+  WEB
+  KIOSK
+  MOBILE
+  API
+}
+
+enum LeaveRequestType {
+  VACATION
+  SICK
+  PERSONAL
+  OTHER
+}
+
+enum LeaveRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum IncidentKind {
+  LATE
+  MISSING_OUT
+  OUT_OF_GEOFENCE
+  OUT_OF_IP
+  OVERLAP
+}
+
+enum WebhookEvent {
+  EMPLOYEE_CREATED
+  CLOCK_EVENT_CREATED
+  LEAVE_REQUEST_CREATED
+  INCIDENT_CREATED
+}
+
+
+// MODELS
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  vatId     String?
+  settings  Json?    @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at")
+
+  memberships  Membership[]
+  locations    Location[]
+  workShifts   WorkShift[]
+  employees    Employee[]
+  clockEvents  ClockEvent[]
+  leaveRequests LeaveRequest[]
+  incidents    Incident[]
+  auditLogs    AuditLog[]
+  webhooks     Webhook[]
+
+  @@map("organizations")
+}
+
+model UserProfile {
+  id        String   @id @default(uuid())
+  fullName  String?  @map("full_name")
+  email     String   @unique
+  avatarUrl String?  @map("avatar_url")
+  locale    String?  @default("en")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  memberships Membership[]
+  employees   Employee[]
+  auditLogs   AuditLog[]
+
+  @@map("users_profile")
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String       @map("user_id")
+  organizationId String       @map("organization_id")
+  role           Role
+  isActive       Boolean      @default(true) @map("is_active")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  user         UserProfile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@map("memberships")
+}
+
+model Location {
+  id                String   @id @default(cuid())
+  organizationId    String   @map("organization_id")
+  name              String
+  address           String
+  lat               Float?
+  lng               Float?
+  geofenceRadiusM   Int?     @map("geofence_radius_m")
+  ipWhitelist       String[] @map("ip_whitelist")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  defaultForEmployees Employee[]
+
+  @@map("locations")
+}
+
+model WorkShift {
+  id                  String   @id @default(cuid())
+  organizationId      String   @map("organization_id")
+  name                String
+  tz                  String   @default("UTC")
+  startTime           String   @map("start_time") // "HH:mm:ss"
+  endTime             String   @map("end_time")   // "HH:mm:ss"
+  breakMinutesDefault Int      @default(0) @map("break_minutes_default")
+  daysOfWeek          Int[]    @map("days_of_week") // 0=Sunday, 6=Saturday
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  defaultForEmployees Employee[]
+
+  @@map("work_shifts")
+}
+
+model Employee {
+  id                String    @id @default(cuid())
+  organizationId    String    @map("organization_id")
+  userId            String?   @map("user_id") // Can be null for kiosk-only employees
+  externalCode      String?   @map("external_code")
+  pinHash           String?   @map("pin_hash")
+  defaultLocationId String?   @map("default_location_id")
+  defaultShiftId    String?   @map("default_shift_id")
+  hireDate          DateTime? @map("hire_date")
+  isActive          Boolean   @default(true) @map("is_active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            UserProfile?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  defaultLocation Location?     @relation(fields: [defaultLocationId], references: [id], onDelete: SetNull)
+  defaultShift    WorkShift?    @relation(fields: [defaultShiftId], references: [id], onDelete: SetNull)
+  clockEvents     ClockEvent[]
+  leaveRequests   LeaveRequest[]
+  incidents       Incident[]
+
+  @@unique([organizationId, userId])
+  @@unique([organizationId, externalCode])
+  @@map("employees")
+}
+
+model ClockEvent {
+  id              String           @id @default(cuid())
+  organizationId  String           @map("organization_id")
+  employeeId      String           @map("employee_id")
+  type            ClockEventType
+  timestampUtc    DateTime         @map("timestamp_utc")
+  source          ClockEventSource
+  lat             Float?
+  lng             Float?
+  photoUrl        String?          @map("photo_url")
+  ip              String?
+  userAgent       String?          @map("user_agent")
+  offlineCached   Boolean          @default(false) @map("offline_cached")
+  notes           String?
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("clock_events")
+}
+
+model LeaveRequest {
+  id             String             @id @default(cuid())
+  organizationId String             @map("organization_id")
+  employeeId     String             @map("employee_id")
+  type           LeaveRequestType
+  startUtc       DateTime           @map("start_utc")
+  endUtc         DateTime           @map("end_utc")
+  status         LeaveRequestStatus @default(PENDING)
+  reason         String?
+  attachmentUrl  String?            @map("attachment_url")
+  createdAt      DateTime           @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("leave_requests")
+}
+
+model Incident {
+  id               String       @id @default(cuid())
+  organizationId   String       @map("organization_id")
+  employeeId       String       @map("employee_id")
+  kind             IncidentKind
+  detectedAt       DateTime     @map("detected_at")
+  resolved         Boolean      @default(false)
+  resolutionNotes  String?      @map("resolution_notes")
+  createdAt        DateTime     @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("incidents")
+}
+
+model AuditLog {
+  id             String       @id @default(cuid())
+  organizationId String       @map("organization_id")
+  actorUserId    String?      @map("actor_user_id")
+  action         String
+  entity         String
+  entityId       String?      @map("entity_id")
+  previous       Json?        @db.JsonB
+  next           Json?        @db.JsonB
+  ip             String?
+  userAgent      String?      @map("user_agent")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actorUser    UserProfile? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+
+model Webhook {
+  id             String       @id @default(cuid())
+  organizationId String       @map("organization_id")
+  event          WebhookEvent
+  url            String
+  secret         String
+  isActive       Boolean      @default(true) @map("is_active")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("webhooks")
+}

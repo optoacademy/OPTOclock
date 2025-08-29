@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: fichaje-saas-app
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mounts the entire project directory into the container, except node_modules.
+      # This is great for development as changes on the host are reflected in the container.
+      - ..:/app
+      - /app/node_modules
+      - /app/.next
+    # Use the .env file from the root of the project
+    env_file:
+      - ../.env
+    # Command to run the app in development mode
+    # The 'pnpm dev' script is defined in package.json
+    command: pnpm dev
+    restart: unless-stopped
+networks:
+  default:
+    name: fichaje-saas-network
